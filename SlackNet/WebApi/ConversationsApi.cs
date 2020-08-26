@@ -101,6 +101,14 @@ namespace SlackNet.WebApi
         Task<ConversationListResponse> List(bool excludeArchived = false, int limit = 100, IEnumerable<ConversationType> types = null, string cursor = null, CancellationToken? cancellationToken = null);
 
         /// <summary>
+        /// Sets the read cursor in a channel.
+        /// </summary>
+        /// <param name="channelId">Channel or conversation to set the read cursor for.</param>
+        /// <param name="messageTs">Unique identifier of message you want marked as most recently seen in this conversation.</param>
+        /// <param name="cancellationToken"></param>
+        Task Mark(string channelId, string messageTs, CancellationToken? cancellationToken = null);
+
+        /// <summary>
         /// Retrieve members of a conversation.
         /// </summary>
         /// <param name="channelId">ID of the conversation to retrieve members for.</param>
@@ -137,7 +145,7 @@ namespace SlackNet.WebApi
         /// </summary>
         /// <param name="channelId">Resume a conversation by supplying an im or mpim's ID.</param>
         /// <param name="cancellationToken"></param>
-        Task<ImResponse> OpenAndReturnInfo(string channelId, CancellationToken? cancellationToken = null);
+        Task<ConversationOpenResponse> OpenAndReturnInfo(string channelId, CancellationToken? cancellationToken = null);
 
         /// <summary>
         /// Opens or resumes a direct message or multi-person direct message.
@@ -145,7 +153,7 @@ namespace SlackNet.WebApi
         /// </summary>
         /// <param name="userIds">List of users. If only one user is included, this creates a 1:1 DM. The ordering of the users is preserved whenever a multi-person direct message is returned.</param>
         /// <param name="cancellationToken"></param>
-        Task<ImResponse> OpenAndReturnInfo(IEnumerable<string> userIds, CancellationToken? cancellationToken = null);
+        Task<ConversationOpenResponse> OpenAndReturnInfo(IEnumerable<string> userIds, CancellationToken? cancellationToken = null);
 
         /// <summary>
         /// Renames a conversation.
@@ -339,6 +347,19 @@ namespace SlackNet.WebApi
                 }, cancellationToken);
 
         /// <summary>
+        /// Sets the read cursor in a channel.
+        /// </summary>
+        /// <param name="channelId">Channel or conversation to set the read cursor for.</param>
+        /// <param name="messageTs">Unique identifier of message you want marked as most recently seen in this conversation.</param>
+        /// <param name="cancellationToken"></param>
+        public Task Mark(string channelId, string messageTs, CancellationToken? cancellationToken = null) =>
+            _client.Post("conversations.mark", new Args
+                {
+                    { "channel", channelId },
+                    { "ts", messageTs }
+                }, cancellationToken);
+
+        /// <summary>
         /// Retrieve members of a conversation.
         /// </summary>
         /// <param name="channelId">ID of the conversation to retrieve members for.</param>
@@ -383,8 +404,8 @@ namespace SlackNet.WebApi
         /// </summary>
         /// <param name="channelId">Resume a conversation by supplying an im or mpim's ID.</param>
         /// <param name="cancellationToken"></param>
-        public Task<ImResponse> OpenAndReturnInfo(string channelId, CancellationToken? cancellationToken = null) => 
-            Open<ImResponse>(true, channelId, null, cancellationToken);
+        public Task<ConversationOpenResponse> OpenAndReturnInfo(string channelId, CancellationToken? cancellationToken = null) => 
+            Open<ConversationOpenResponse>(true, channelId, null, cancellationToken);
 
         /// <summary>
         /// Opens or resumes a direct message or multi-person direct message.
@@ -392,8 +413,8 @@ namespace SlackNet.WebApi
         /// </summary>
         /// <param name="userIds">List of users. If only one user is included, this creates a 1:1 DM. The ordering of the users is preserved whenever a multi-person direct message is returned.</param>
         /// <param name="cancellationToken"></param>
-        public Task<ImResponse> OpenAndReturnInfo(IEnumerable<string> userIds, CancellationToken? cancellationToken = null) => 
-            Open<ImResponse>(true, null, userIds, cancellationToken);
+        public Task<ConversationOpenResponse> OpenAndReturnInfo(IEnumerable<string> userIds, CancellationToken? cancellationToken = null) => 
+            Open<ConversationOpenResponse>(true, null, userIds, cancellationToken);
 
         private Task<T> Open<T>(bool returnIm, string channelId = null, IEnumerable<string> userIds = null, CancellationToken? cancellationToken = null) where T : class =>
             _client.Post<T>("conversations.open", new Args

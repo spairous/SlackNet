@@ -2,19 +2,17 @@
 using System.Net.Http;
 using System.Reflection;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
-using SlackNet.Interaction;
 
 namespace SlackNet
 {
-    public class Default
+    public static class Default
     {
-        public static IHttp Http(SlackJsonSettings jsonSettings) => new Http(new HttpClient(), jsonSettings);
+        public static IHttp Http(SlackJsonSettings jsonSettings = null, HttpClient httpClient = null) => new Http(httpClient ?? new HttpClient(), jsonSettings ?? JsonSettings());
 
-        public static ISlackUrlBuilder UrlBuilder(SlackJsonSettings jsonSettings) => new SlackUrlBuilder(jsonSettings);
+        public static ISlackUrlBuilder UrlBuilder(SlackJsonSettings jsonSettings = null) => new SlackUrlBuilder(jsonSettings ?? JsonSettings());
 
-        public static SlackJsonSettings JsonSettings(ISlackTypeResolver slackTypeResolver) => new SlackJsonSettings(SerializerSettings(slackTypeResolver));
+        public static SlackJsonSettings JsonSettings(ISlackTypeResolver slackTypeResolver = null) => new SlackJsonSettings(SerializerSettings(slackTypeResolver ?? SlackTypeResolver()));
 
         private static JsonSerializerSettings SerializerSettings(ISlackTypeResolver slackTypeResolver)
         {
@@ -22,6 +20,7 @@ namespace SlackNet
             return new JsonSerializerSettings
                 {
                     NullValueHandling = NullValueHandling.Ignore,
+                    DateFormatString = "yyyy-MM-dd",
                     ContractResolver = new SlackNetContractResolver
                         {
                             NamingStrategy = namingStrategy,
@@ -29,23 +28,18 @@ namespace SlackNet
                     Converters =
                         {
                             new EnumNameConverter(namingStrategy),
-                            new SlackTypeConverter(slackTypeResolver),
-                            new IsoDateTimeConverter { DateTimeFormat = "YYYY-MM-DD" }
+                            new SlackTypeConverter(slackTypeResolver)
                         }
                 };
         }
+        
+        public static ISlackTypeResolver SlackTypeResolver() => new SlackTypeResolver(AssembliesContainingSlackTypes);
 
         public static ISlackTypeResolver SlackTypeResolver(params Assembly[] assembliesContainingSlackTypes) => new SlackTypeResolver(assembliesContainingSlackTypes);
 
         public static Assembly[] AssembliesContainingSlackTypes => new[] { typeof(Default).GetTypeInfo().Assembly };
 
         public static IWebSocketFactory WebSocketFactory => new WebSocketFactory();
-
-        public static ISlackEvents SlackEvents { get; } = new SlackEvents();
-
-        public static ISlackInteractiveMessages SlackInteractiveMessages { get; } = new SlackInteractiveMessages();
-
-        public static ISlackOptions SlackOptions { get; } = new SlackOptions();
 
         public static void RegisterServices(Action<Type, Func<Func<Type, object>, object>> registerService)
         {
@@ -54,9 +48,6 @@ namespace SlackNet
             registerService(typeof(SlackJsonSettings), resolve => JsonSettings((ISlackTypeResolver)resolve(typeof(ISlackTypeResolver))));
             registerService(typeof(ISlackTypeResolver), resolve => SlackTypeResolver(AssembliesContainingSlackTypes));
             registerService(typeof(IWebSocketFactory), resolve => WebSocketFactory);
-            registerService(typeof(ISlackEvents), resolve => SlackEvents);
-            registerService(typeof(ISlackInteractiveMessages), resolve => SlackInteractiveMessages);
-            registerService(typeof(ISlackOptions), resolve => SlackOptions);
         }
     }
 }
